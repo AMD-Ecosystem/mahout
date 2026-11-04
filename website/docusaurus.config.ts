@@ -142,25 +142,48 @@ const config: Config = {
           position: 'left',
           items: [
             {
-              label: 'Overview of the Apache Software Foundation',
+              label: 'Apache Software Foundation',
+              href: 'https://www.apache.org/',
+            },
+            {
+              label: 'How the ASF Works',
               href: 'https://www.apache.org/foundation/how-it-works.html',
             },
             {
-              type: 'doc',
-              docId: 'about/how-to-contribute',
-              label: 'How to Contribute',
+              label: 'License',
+              href: 'https://www.apache.org/licenses/',
+            },
+            {
+              label: 'Events',
+              href: 'https://www.apache.org/events/current-event',
+            },
+            {
+              label: 'Security',
+              href: 'https://www.apache.org/security/',
+            },
+            {
+              label: 'Sponsorship',
+              href: 'https://www.apache.org/foundation/sponsorship.html',
+            },
+            {
+              label: 'Thanks',
+              href: 'https://www.apache.org/foundation/thanks.html',
+            },
+            {
+              label: 'Privacy',
+              href: 'https://privacy.apache.org/policies/privacy-policy-public.html',
             },
           ],
         },
-        // Qumat dropdown
+        // Docs dropdown (mirrors the top level of the docs sidebar)
         {
           type: 'dropdown',
-          label: 'Qumat',
+          label: 'Docs',
           position: 'left',
           items: [
             {
               type: 'doc',
-              docId: 'qumat/index',
+              docId: 'index',
               label: 'Overview',
             },
             {
@@ -170,8 +193,39 @@ const config: Config = {
             },
             {
               type: 'doc',
+              docId: 'qumat/index',
+              label: 'Qumat (Circuits)',
+            },
+            {
+              type: 'doc',
               docId: 'qdp/index',
               label: 'QDP (Data Encoding)',
+            },
+          ],
+        },
+        // Download
+        {
+          type: 'doc',
+          docId: 'qumat/getting-started',
+          label: 'Download',
+          position: 'left',
+        },
+        // Powered By
+        {
+          to: '/powered-by',
+          label: 'Powered By',
+          position: 'left',
+        },
+        // Resources dropdown
+        {
+          type: 'dropdown',
+          label: 'Resources',
+          position: 'left',
+          items: [
+            {
+              type: 'doc',
+              docId: 'advanced/index',
+              label: 'PQC Guides',
             },
             {
               type: 'doc',
@@ -183,14 +237,17 @@ const config: Config = {
               docId: 'learning/papers/index',
               label: 'Research Papers',
             },
+            {
+              type: 'doc',
+              docId: 'learning/books-tutorials-and-talks',
+              label: 'Books, Tutorials & Talks',
+            },
+            {
+              type: 'doc',
+              docId: 'learning/professional-support',
+              label: 'Professional Support',
+            },
           ],
-        },
-        // Download
-        {
-          type: 'doc',
-          docId: 'qumat/getting-started',
-          label: 'Download',
-          position: 'left',
         },
         // Community dropdown
         {
@@ -219,8 +276,18 @@ const config: Config = {
             },
             {
               type: 'doc',
+              docId: 'about/how-to-contribute',
+              label: 'How to Contribute',
+            },
+            {
+              type: 'doc',
               docId: 'community/code-of-conduct',
               label: 'Code of Conduct',
+            },
+            {
+              type: 'doc',
+              docId: 'community/pr-policy-and-review-guidelines',
+              label: 'PR Policy & Review',
             },
           ],
         },
@@ -288,6 +355,10 @@ const config: Config = {
             {
               label: 'Who We Are',
               to: '/docs/community/who-we-are',
+            },
+            {
+              label: 'Powered By',
+              to: '/powered-by',
             },
           ],
         },

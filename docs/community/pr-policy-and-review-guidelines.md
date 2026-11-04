@@ -1,3 +1,8 @@
+---
+title: PR Policy and Review Guidelines
+sidebar_label: PR Policy & Review
+---
+
 <!--
 Licensed to the Apache Software Foundation (ASF) under one or more
 contributor license agreements.  See the NOTICE file distributed with
@@ -14,11 +19,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 -->
-
----
-title: PR Policy and Review Guidelines
-sidebar_label: PR Policy & Review
----
 
 # PR Policy and Review Guidelines
 
@@ -73,11 +73,56 @@ For non-trivial code contributions, contributors are expected to have an ASF ICL
 
 When deciding whether to merge, committers should verify all of the following:
 
-- Required CI checks are green.
-- At least one committer approves.
+- Required CI checks are green (enforced automatically, see below).
+- At least two committers approve (enforced automatically, see below).
 - All blocking comments are resolved.
 
-The following changes should receive at least two committer approvals and prior public discussion (issue or `dev@` thread):
+#### Auto-merge and CI
+
+GitHub auto-merge only waits for *required* status checks, and the CI jobs are
+deliberately **not** required on `main`: a required check would also stop a
+committer from merging manually when a failure is judged acceptable. Instead
+the `Auto-merge gate` status check ([`automerge-gate.yml`](https://github.com/apache/mahout/blob/main/.github/workflows/automerge-gate.yml))
+is required. It runs on every push to the PR and waits for the other CI
+workflows of that commit (the `Committer approval` check below is not CI and
+is not waited for):
+
+- While any CI workflow is still running, the gate is "in progress", so
+  auto-merge cannot fire early. (It gives up after about an hour; re-run the
+  job in that case.)
+- When every CI workflow passed (or was skipped), the gate passes and
+  auto-merge, if enabled, merges the PR.
+- When a CI workflow failed, the gate **disables auto-merge** on the PR, leaves
+  a comment, and then passes. The PR is not merged automatically, but a
+  committer can still merge it manually. Auto-merge has to be enabled again by
+  hand after a fix. For pull requests from forks the gate cannot disable
+  auto-merge (read-only token) and fails instead; a committer then disables
+  auto-merge by hand or fixes CI and re-runs the job.
+- After fixing a failed CI job, re-run the failed job and then re-run the
+  gate (or push a new commit).
+- **Urgent changes (PMC only):** PMC members are bypass actors of the `main`
+  branch ruleset in [`.asf.yaml`](https://github.com/apache/mahout/blob/main/.asf.yaml).
+  On any pull request they can choose "Merge without waiting for requirements
+  to be met (bypass rules)" and merge immediately, without waiting for CI or
+  for the status checks above (for example when the ASF runner queue is
+  stuck). The change must still come as a pull request, and every bypass is
+  recorded in the repository's audit log. Use it deliberately.
+
+"Required CI checks are green" above therefore remains a committer
+responsibility: merging over a red CI job is possible and must be a deliberate
+decision.
+
+#### Enforced Committer Approval
+
+The `Committer approval` status check ([`pr-approval-check.yml`](https://github.com/apache/mahout/blob/main/.github/workflows/pr-approval-check.yml)) is required on `main` and re-runs whenever a review is submitted, edited, or dismissed:
+
+- The PR must have at least **two** distinct reviewers whose latest review is an approval and who have write access to the repository (i.e. committers). Approvals from non-committers are welcome but do not count. The number is set by `REQUIRED_APPROVALS` in the workflow.
+- Following GitHub semantics, a comment-only review keeps an earlier approval in place; "Request changes" or dismissing the review removes it.
+- PRs opened by PMC members are exempt. The list of PMC GitHub accounts lives in [`.github/pmc-members.txt`](https://github.com/apache/mahout/blob/main/.github/pmc-members.txt) and must be updated when the PMC roster changes.
+- Like the other CI workflows it runs on the `pull_request` event, so for pull requests from forks it waits until a maintainer approves the workflow runs ("Approve and run"). Until then the check is pending rather than failed, so a new PR is not marked red before anyone has looked at it. Once it has run, it stays red until the required approvals are in.
+- This applies to auto-merge and manual merges alike; PMC members can bypass it in an emergency (see above).
+
+The following changes should additionally have prior public discussion (issue or `dev@` thread):
 
 - API or behavior-breaking changes.
 - Architecture or major dependency changes.

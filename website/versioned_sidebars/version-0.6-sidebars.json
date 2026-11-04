@@ -52,8 +52,9 @@
     },
     {
       "type": "category",
-      "label": "Advanced Topics",
+      "label": "PQC Guides",
       "collapsed": true,
+      "link": {"type": "doc", "id": "advanced/index"},
       "items": [
         "advanced/pqc",
         "advanced/gap-analysis"
@@ -94,6 +95,9 @@
         "learning/papers/Unleashing-the-Potential-of-LLMs-for-Quantum-Computing"
       ]
     },
+    "learning/books-tutorials-and-talks",
+    "learning/reference-reading",
+    "learning/professional-support",
     {
       "type": "category",
       "label": "Community",

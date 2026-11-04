@@ -157,9 +157,15 @@ pub fn write_list_parquet_f64(path: &str, data: &[f64], sample_size: usize) {
 }
 
 /// Returns a CUDA device handle, or `None` when CUDA is unavailable for the test environment.
+///
+/// Checks `cuda_runtime_available()` first: without an NVIDIA driver a bare
+/// `CudaDevice::new` panics inside cudarc instead of returning `Err`.
 #[cfg(qdp_gpu_platform)]
 #[allow(dead_code)]
 pub fn cuda_device() -> Option<Arc<CudaDevice>> {
+    if !qdp_core::cuda_runtime_available() {
+        return None;
+    }
     CudaDevice::new(0).ok()
 }
 
@@ -229,6 +235,45 @@ pub unsafe fn assert_dlpack_shape_2d_and_delete(
     unsafe { assert_dlpack_shape_2d(dlpack_ptr, dim0, dim1) };
 
     unsafe { take_deleter_and_delete(dlpack_ptr) };
+}
+
+/// Downloads a complex128 DLPack tensor as interleaved real and imaginary values.
+#[cfg(qdp_gpu_platform)]
+#[allow(dead_code)]
+pub unsafe fn download_dlpack_complex_f64(dlpack_ptr: *mut DLManagedTensor) -> Vec<f64> {
+    assert!(!dlpack_ptr.is_null(), "DLPack pointer should not be null");
+
+    let tensor = unsafe { &(*dlpack_ptr).dl_tensor };
+    assert!(tensor.ndim > 0, "DLPack tensor should have dimensions");
+    assert!(!tensor.shape.is_null(), "DLPack shape should not be null");
+    assert!(!tensor.data.is_null(), "DLPack data should not be null");
+    #[cfg(not(feature = "hip"))]
+    let expected_device_type = qdp_core::dlpack::DLDeviceType::kDLCUDA;
+    #[cfg(feature = "hip")]
+    let expected_device_type = qdp_core::dlpack::DLDeviceType::kDLROCM;
+    assert_eq!(tensor.device.device_type, expected_device_type);
+    assert_eq!(tensor.dtype.code, qdp_core::dlpack::DL_COMPLEX);
+    assert_eq!(tensor.dtype.bits, 128);
+    assert_eq!(tensor.dtype.lanes, 1);
+
+    let shape = unsafe { std::slice::from_raw_parts(tensor.shape, tensor.ndim as usize) };
+    let num_elements = shape.iter().try_fold(1_usize, |count, &dim| {
+        usize::try_from(dim)
+            .ok()
+            .and_then(|dim| count.checked_mul(dim))
+    });
+    let num_elements = num_elements.expect("DLPack shape should fit in usize");
+    let device_ptr = (tensor.data as u64)
+        .checked_add(tensor.byte_offset)
+        .expect("DLPack byte offset should fit in a device pointer");
+
+    let device = cuda_device().expect("a device tensor implies a usable GPU");
+    qdp_core::gpu::download_complex_f64(
+        &device,
+        device_ptr as *const qdp_kernels::CuDoubleComplex,
+        num_elements,
+    )
+    .expect("device-to-host copy should succeed")
 }
 
 /// Takes the DLPack deleter from the managed tensor and invokes it exactly once.
