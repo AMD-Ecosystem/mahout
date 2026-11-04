@@ -238,7 +238,7 @@ pub unsafe fn assert_dlpack_shape_2d_and_delete(
 }
 
 /// Downloads a complex128 DLPack tensor as interleaved real and imaginary values.
-#[cfg(target_os = "linux")]
+#[cfg(qdp_gpu_platform)]
 #[allow(dead_code)]
 pub unsafe fn download_dlpack_complex_f64(dlpack_ptr: *mut DLManagedTensor) -> Vec<f64> {
     assert!(!dlpack_ptr.is_null(), "DLPack pointer should not be null");
@@ -247,10 +247,11 @@ pub unsafe fn download_dlpack_complex_f64(dlpack_ptr: *mut DLManagedTensor) -> V
     assert!(tensor.ndim > 0, "DLPack tensor should have dimensions");
     assert!(!tensor.shape.is_null(), "DLPack shape should not be null");
     assert!(!tensor.data.is_null(), "DLPack data should not be null");
-    assert_eq!(
-        tensor.device.device_type,
-        qdp_core::dlpack::DLDeviceType::kDLCUDA
-    );
+    #[cfg(not(feature = "hip"))]
+    let expected_device_type = qdp_core::dlpack::DLDeviceType::kDLCUDA;
+    #[cfg(feature = "hip")]
+    let expected_device_type = qdp_core::dlpack::DLDeviceType::kDLROCM;
+    assert_eq!(tensor.device.device_type, expected_device_type);
     assert_eq!(tensor.dtype.code, qdp_core::dlpack::DL_COMPLEX);
     assert_eq!(tensor.dtype.bits, 128);
     assert_eq!(tensor.dtype.lanes, 1);
@@ -262,22 +263,17 @@ pub unsafe fn download_dlpack_complex_f64(dlpack_ptr: *mut DLManagedTensor) -> V
             .and_then(|dim| count.checked_mul(dim))
     });
     let num_elements = num_elements.expect("DLPack shape should fit in usize");
-    let byte_count = num_elements
-        .checked_mul(std::mem::size_of::<qdp_kernels::CuDoubleComplex>())
-        .expect("DLPack byte count should fit in usize");
-    let host_len = num_elements
-        .checked_mul(2)
-        .expect("DLPack complex128 element count should fit in usize");
-    let mut host = vec![0.0_f64; host_len];
     let device_ptr = (tensor.data as u64)
         .checked_add(tensor.byte_offset)
         .expect("DLPack byte offset should fit in a device pointer");
 
-    let ret = unsafe {
-        cudarc::driver::sys::lib().cuMemcpyDtoH_v2(host.as_mut_ptr().cast(), device_ptr, byte_count)
-    };
-    assert_eq!(ret, cudarc::driver::sys::CUresult::CUDA_SUCCESS);
-    host
+    let device = cuda_device().expect("a device tensor implies a usable GPU");
+    qdp_core::gpu::download_complex_f64(
+        &device,
+        device_ptr as *const qdp_kernels::CuDoubleComplex,
+        num_elements,
+    )
+    .expect("device-to-host copy should succeed")
 }
 
 /// Takes the DLPack deleter from the managed tensor and invokes it exactly once.
